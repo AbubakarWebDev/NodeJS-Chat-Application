@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "JWT Authentication with Express MongoDB and proper error handling",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.13.0",
+    "npm": ">=9.6.1"
+  },
   "scripts": {
     "dev": "nodemon index",
     "debug": "set DEBUG=app:debug&& nodemon index",
