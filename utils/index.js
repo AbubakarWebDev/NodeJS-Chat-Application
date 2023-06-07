@@ -1,20 +1,10 @@
+const crypto = require('crypto');
 
-function promisify(fn) {
-    return function (...args) {
-        return new Promise((resolve, reject) => {
-            fn(...args, (err, result) => {
-                if (err) {
-                    reject(err);
-                } 
-                else {
-                    resolve(result);
-                }
-            });
-        });
-    };
+function generateJWTSecret() {
+    return crypto.randomBytes(32).toString('hex');
 }
 
 
 module.exports = {
-    promisify
+    generateJWTSecret
 }
