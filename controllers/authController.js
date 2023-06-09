@@ -1,36 +1,17 @@
 const fs = require('fs');
+const path = require('path');
+const { promisify } = require('util');
+
 const Joi = require('joi');
 const bcrypt = require("bcrypt");
 const multer  = require('multer');
 const jwt = require('jsonwebtoken');
-const { promisify } = require('util');
 
 const sendEmail = require('../utils/mail');
 const AppError = require("../utils/AppError");
 const { success } = require('../utils/apiResponse');
 
 const { User, validate } = require("../models/User");
-const { log } = require('console');
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads');
-    },
-
-    filename: function (req, file, cb) {
-        const fileName = file.originalname.split('.')[0];
-        const fileExtension = file.originalname.split('.')[1];
-
-        cb(null, `${fileName}-${Date.now()}.${fileExtension}`);
-    }
-});
-
-const limits = {
-    fileSize: 1 * 1000 * 1000,  // 1 MB
-    files: 1,
-};
-
-const upload = multer({ storage, limits }).single('avatar');
 
 const loginUser = async (req, res) => {
     // Joi Schema for input validation
@@ -63,44 +44,108 @@ const loginUser = async (req, res) => {
     return res.status(200).json(success("LoggedInn successfully", 200, { token }));
 }
 
-const registerUser = async (req, res) => {
-    console.log(req.body);
+const registerUser = async (req, res, next) => {
+    const storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, 'public/uploads');
+        },
 
-    // Validate request body with Joi schema
-    const { error, value } = validate(req.body);
-    if (error) {
-        throw new AppError(
-            "Validation Errors",
-            422,
-            error.details.map(elem => ({ [elem.context.key]: elem.message }))
-        );
-    }
+        filename: function (req, file, cb) {
+            const fileName = file.originalname.split('.')[0];
+            const fileExtension = file.originalname.split('.')[1];
 
-    // Check if username already exists in database
-    let checkUsername = await User.findOne({ username: value.username });
-    if (checkUsername) throw new AppError("Username is already taken!", 400);
-
-    // Check if user email already exists in database
-    let checkEmail = await User.findOne({ email: value.email });
-    if (checkEmail) throw new AppError("User email is already Registered!", 400);
-
-    // Create new user in database
-    let user = new User({
-        username: value.username,
-        firstName: value.firstName,
-        lastName: value.lastName,
-        email: value.email,
-        password: value.password,
-        avatar: req.file.path
+            cb(null, `${fileName}-${Date.now()}.${fileExtension}`);
+        }
     });
 
-    // Hash password and save user to database
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
-    await user.save();
+    async function fileFilter(req, file, cb) {
+        console.log("inside fileFilter");
+        // Validate request body with Joi schema
+        const { error, value } = validate(req.body);
+        if (error) {
+            return cb(
+                new AppError(
+                    "Validation Errors",
+                    422,
+                    error.details.map(elem => ({ [elem.context.key]: elem.message }))
+                ),
+                false
+            );
+        }
 
-    return res.status(200).json(success("User created successfully", 200));
-}
+        // Check if username already exists in database
+        let checkUsername = await User.findOne({ username: value.username });
+        if (checkUsername) return cb(new AppError("Username is already taken!", 400), false);
+
+        // Check if user email already exists in database
+        let checkEmail = await User.findOne({ email: value.email });
+        if (checkEmail) return cb(new AppError("User email is already Registered!", 400), false);
+
+        if (!file) {
+            return cb(new AppError("Avatar Image is Required!", 400), false);
+        }
+
+        // Check if the file is an image with the allowed extensions
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+
+        const isImage = file.mimetype.startsWith('image/');
+        const isAllowedExtension = allowedExtensions.includes(fileExtension);
+
+        if (!isImage || !isAllowedExtension) {
+            return cb(new AppError('Invalid file type. Only image files (PNG, JPG, JPEG, GIF, and WebP) are allowed.', 400), false);
+        }
+
+        cb(null, true);
+    };
+
+    const limits = {
+        fileSize: 1 * 1000 * 1000,  // 1 MB
+        files: 1,
+    };
+
+    const upload = multer({ storage, limits, fileFilter }).single('avatar');
+
+    upload(req, res, async (err) => {
+        try {            
+            if (err instanceof multer.MulterError) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                    throw new AppError(`File ${err.field} upload exceeds the maximum file size limit!`, 400);
+                }
+                else {
+                    throw err;
+                }
+            }
+            else if (err instanceof AppError) {
+                throw err;
+            }
+
+            if (!req.file) {
+                throw new AppError("Avatar Image is Required!", 400);
+            }
+    
+            // Create new user in database
+            let user = new User({
+                username: req.body.username,
+                firstName: req.body.firstName,
+                lastName: req.body.lastName,
+                email: req.body.email,
+                password: req.body.password,
+                avatar: req.file.path
+            });
+    
+            // // Hash password and save user to database
+            // const salt = await bcrypt.genSalt(10);
+            // user.password = await bcrypt.hash(user.password, salt);
+            // await user.save();
+            
+            return res.status(200).json(success("User created successfully", 200));
+        } 
+        catch (err) {
+            return next(err);  
+        }
+    });
+};
 
 const changePassword = async (req, res) => {
     // Define Joi schema for input validation

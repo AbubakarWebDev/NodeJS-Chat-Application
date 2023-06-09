@@ -1,7 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
 const helmet = require('helmet');
-const multer  = require('multer');
 
 module.exports = function(app) {
     // for secure express app by setting various HTTP headers.
@@ -24,8 +23,6 @@ module.exports = function(app) {
     * if object, with nested objects, or generally any type
     */
     app.use(express.urlencoded({ extended: true }));
-
-    app.use(multer().array());
 
     // For HTTP request logging in development environment
     if (app.get('env') === 'development') {
