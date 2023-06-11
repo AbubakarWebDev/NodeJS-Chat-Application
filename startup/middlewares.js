@@ -1,6 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const cors = require('cors');
 
 module.exports = function(app) {
     // for secure express app by setting various HTTP headers.
@@ -23,6 +24,12 @@ module.exports = function(app) {
     * if object, with nested objects, or generally any type
     */
     app.use(express.urlencoded({ extended: true }));
+
+    // for enabling cors requests from clients for a specific set of origins
+    app.use(cors({
+        origin: ['http://localhost:3005'],
+        optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+    }));
 
     // For HTTP request logging in development environment
     if (app.get('env') === 'development') {

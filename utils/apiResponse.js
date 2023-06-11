@@ -1,12 +1,12 @@
 // Send any success response
-const success = (message, statusCode, results) => {
+const success = (message, statusCode, result) => {
     let respose = {
         message,
         error: false,
         code: statusCode,
     };
 
-    if (results) respose.results = results
+    if (result) respose.result = result
 
     return respose;
 };

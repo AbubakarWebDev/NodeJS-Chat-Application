@@ -34,26 +34,12 @@ module.exports = function (err, req, res, next) {
 
     // Handle custom application errors
     if (err instanceof AppError) {
-        // Handle validation errors thrown by the route handlers
-        if (err.statusCode === 422) {
-            return res.status(err.statusCode).json(validation(err.errors));
-        }
-
-        // Handle 400 errors thrown by the route handlers
-        else if (err.statusCode === 400) {
-            statusCode = err.statusCode;
-            message = err.message;
-        }
-
-        // Handle other application errors with non-500 status codes
-        else if (err.statusCode !== 500) {
-            statusCode = err.statusCode;
-            message = err.message;
-        }
+        statusCode = err.statusCode;
+        message = err.message;
     }
 
     // Handle uncaught errors with a 500 status code and generic error message
-    return res.status(500).json(error(
+    return res.status(statusCode).json(error(
         message,
         statusCode,
         err.errorCode

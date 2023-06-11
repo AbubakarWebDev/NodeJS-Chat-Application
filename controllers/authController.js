@@ -23,11 +23,7 @@ const loginUser = async (req, res) => {
     // Validate request body with Joi schema
     const { error, value } = schema.validate(req.body);
     if (error) {
-        throw new AppError(
-            "Validation Errors",
-            422,
-            error.details.map(elem => ({ [elem.context.key]: elem.message }))
-        );
+        throw new AppError(error.details[0].message, 422);
     }
 
     // Check if user exists in database
@@ -59,16 +55,11 @@ const registerUser = async (req, res, next) => {
     });
 
     async function fileFilter(req, file, cb) {
-        console.log("inside fileFilter");
         // Validate request body with Joi schema
         const { error, value } = validate(req.body);
         if (error) {
             return cb(
-                new AppError(
-                    "Validation Errors",
-                    422,
-                    error.details.map(elem => ({ [elem.context.key]: elem.message }))
-                ),
+                new AppError(error.details[0].message, 422),
                 false
             );
         }
@@ -134,10 +125,10 @@ const registerUser = async (req, res, next) => {
                 avatar: req.file.path
             });
     
-            // // Hash password and save user to database
-            // const salt = await bcrypt.genSalt(10);
-            // user.password = await bcrypt.hash(user.password, salt);
-            // await user.save();
+            // Hash password and save user to database
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(user.password, salt);
+            await user.save();
             
             return res.status(200).json(success("User created successfully", 200));
         } 
@@ -161,11 +152,7 @@ const changePassword = async (req, res) => {
     const { error, value } = schema.validate(req.body);
     if (error) {
         // If input validation fails, throw AppError with 422 status code and validation errors
-        throw new AppError(
-            "Validation Errors",
-            422,
-            error.details.map(elem => ({ [elem.context.key]: elem.message }))
-        );
+        throw new AppError(error.details[0].message, 422);
     }
 
     // Retrieve the user from the database
@@ -199,11 +186,7 @@ const sendUserPasswordResetEmail = async (req, res) => {
     const { error, value } = schema.validate(req.body);
     if (error) {
         // If input validation fails, throw AppError with 422 status code and validation errors
-        throw new AppError(
-            "Validation Errors",
-            422,
-            error.details.map(elem => ({ [elem.context.key]: elem.message }))
-        );
+        throw new AppError(error.details[0].message, 422);
     }
 
     // Check if user email exists in database or not
@@ -241,11 +224,7 @@ const resetPassword = async (req, res) => {
     const { error, value } = schema.validate(req.body);
     if (error) {
         // If input validation fails, throw AppError with 422 status code and validation errors
-        throw new AppError(
-            "Validation Errors",
-            422,
-            error.details.map(elem => ({ [elem.context.key]: elem.message }))
-        );
+        throw new AppError(error.details[0].message, 422);
     }
 
     // Retrieve the user from the database

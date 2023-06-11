@@ -9,7 +9,7 @@ module.exports = function () {
     mongoose.connect(process.env.CONNECTION_STRING, {
         useNewUrlParser: true,      // Use the new URL parser to parse connection strings
         useUnifiedTopology: true    // Use the new Server Discovery and Monitoring engine
-    })
+    });
 
     // Get the connection object
     const db = mongoose.connection;
