@@ -7,6 +7,7 @@ const bcrypt = require("bcrypt");
 const multer  = require('multer');
 const jwt = require('jsonwebtoken');
 
+const { sleep } = require('../utils');
 const sendEmail = require('../utils/mail');
 const AppError = require("../utils/AppError");
 const { success } = require('../utils/apiResponse');
@@ -114,6 +115,9 @@ const registerUser = async (req, res, next) => {
             if (!req.file) {
                 throw new AppError("Avatar Image is Required!", 400);
             }
+
+            const filePath = req.file.path;
+            const newFilePath = filePath.replace('public/', '');
     
             // Create new user in database
             let user = new User({
@@ -122,7 +126,7 @@ const registerUser = async (req, res, next) => {
                 lastName: req.body.lastName,
                 email: req.body.email,
                 password: req.body.password,
-                avatar: req.file.path
+                avatar: newFilePath
             });
     
             // Hash password and save user to database
@@ -195,7 +199,7 @@ const sendUserPasswordResetEmail = async (req, res) => {
 
     const secret = user._id + process.env.JWT_SECRET_KEY;
     const token = jwt.sign({ email: user.email }, secret, { expiresIn: '15m' });
-    const resetLink = `http://localhost:3000/api/v1/auth/reset-password/${user._id}/${token}`;
+    const resetLink = `${process.env.CLIENT_BASE_URL}/api/v1/auth/reset-password/${user._id}/${token}`;
 
     const readFileAsync = promisify(fs.readFile);
     const template = await readFileAsync('email-templates/reset-password.html', 'utf8');
@@ -258,6 +262,7 @@ const resetPassword = async (req, res) => {
 }
 
 const getLoggedInUser = async (req, res) => {
+    // await sleep(5000);
     return res.status(200).json(success("Success", 200, { user: req.user }));
 }
 
