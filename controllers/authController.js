@@ -7,7 +7,6 @@ const bcrypt = require("bcrypt");
 const multer  = require('multer');
 const jwt = require('jsonwebtoken');
 
-const { sleep } = require('../utils');
 const sendEmail = require('../utils/mail');
 const AppError = require("../utils/AppError");
 const { success } = require('../utils/apiResponse');
@@ -142,46 +141,6 @@ const registerUser = async (req, res, next) => {
     });
 };
 
-const changePassword = async (req, res) => {
-    // Define Joi schema for input validation
-    const schema = Joi.object({
-        currentPassword: Joi.string().min(8).max(1024).required(),
-        newPassword: Joi.string().min(8).max(1024).required(),
-        confirmNewPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
-            'any.only': 'Passwords do not match',
-        }),
-    });
-
-    // Validate request body with Joi schema
-    const { error, value } = schema.validate(req.body);
-    if (error) {
-        // If input validation fails, throw AppError with 422 status code and validation errors
-        throw new AppError(error.details[0].message, 422);
-    }
-
-    // Retrieve the user from the database
-    const user = await User.findById(req.user._id);
-    if (!user) throw new AppError("User does not exist", 400);
-
-    // Validate current user password by comparing with stored hash
-    const validPassword = await bcrypt.compare(value.currentPassword, user.password);
-    if (!validPassword) throw new AppError("Invalid Current Password.", 400);
-
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    const newHashedPassword = await bcrypt.hash(value.newPassword, salt);
-
-    // update new hashed password in database
-    const updatedUser = await User.findByIdAndUpdate(
-        req.user._id,
-        { password: newHashedPassword },
-        { new: true }
-    );
-    if (!updatedUser) throw new AppError("Unable to Update Account Password!", 400);
-
-    return res.status(200).json(success("Account Password Updated Successfully", 200));
-}
-
 const sendUserPasswordResetEmail = async (req, res) => {
     // Define Joi schema for input validation
     const schema = Joi.object({ email: Joi.string().email().required() });
@@ -199,7 +158,7 @@ const sendUserPasswordResetEmail = async (req, res) => {
 
     const secret = user._id + process.env.JWT_SECRET_KEY;
     const token = jwt.sign({ email: user.email }, secret, { expiresIn: '15m' });
-    const resetLink = `${process.env.CLIENT_BASE_URL}/api/v1/auth/reset-password/${user._id}/${token}`;
+    const resetLink = `${process.env.CLIENT_BASE_URL}/reset-password/${user._id}/${token}`;
 
     const readFileAsync = promisify(fs.readFile);
     const template = await readFileAsync('email-templates/reset-password.html', 'utf8');
@@ -261,16 +220,9 @@ const resetPassword = async (req, res) => {
     return res.status(200).json(success("Account Password Reset Successfully", 200));
 }
 
-const getLoggedInUser = async (req, res) => {
-    // await sleep(5000);
-    return res.status(200).json(success("Success", 200, { user: req.user }));
-}
-
 module.exports = {
     loginUser,
     registerUser,
     resetPassword,
-    changePassword,
-    getLoggedInUser,
     sendUserPasswordResetEmail,
 };
