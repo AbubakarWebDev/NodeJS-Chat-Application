@@ -158,7 +158,7 @@ const sendUserPasswordResetEmail = async (req, res) => {
 
     const secret = user._id + process.env.JWT_SECRET_KEY;
     const token = jwt.sign({ email: user.email }, secret, { expiresIn: '15m' });
-    const resetLink = `${process.env.CLIENT_BASE_URL}/reset-password/${user._id}/${token}`;
+    const resetLink = `${process.env.FRONTEND_BASE_URL}/reset-password/${user._id}/${token}`;
 
     const readFileAsync = promisify(fs.readFile);
     const template = await readFileAsync('email-templates/reset-password.html', 'utf8');
