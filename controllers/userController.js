@@ -68,8 +68,25 @@ const getLoggedInUser = async (req, res) => {
     return res.status(200).json(success("Success", 200, { user: req.user }));
 }
 
+const getAllUsers = async (req, res) => {
+    let filter = req.query.search ? { 
+        $or: [ 
+            { username: { $regex: req.query.search, $options: 'i' } },
+            { email: { $regex: req.query.search, $options: 'i' } }
+        ],
+        _id: { $ne: req.user._id }
+    } : {
+        _id: { $ne: req.user._id }
+    };
+
+    const users = await User.find(filter).select('-password -__v');
+
+    return res.status(200).json(success("Success", 200, { users }));
+}
+
 module.exports = {
     changePassword,
     getLoggedInUser,
-    checkUserExists
+    checkUserExists,
+    getAllUsers
 };

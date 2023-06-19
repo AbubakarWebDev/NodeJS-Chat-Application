@@ -36,6 +36,8 @@ const userSchema = new mongoose.Schema({
         type: String ,
         required: true
     }
+}, {
+    timestamps: true 
 });
 
 userSchema.methods.generateAuthToken = async function () {
@@ -57,7 +59,7 @@ userSchema.methods.generateAuthToken = async function () {
 
 const User = mongoose.model('User', userSchema);
 
-function validateUser(user) {
+function validate(user) {
     let userSchema = {
         username: Joi.string().alphanum().min(4).max(25).required(),
         firstName: Joi.string().min(3).required().label("First Name"),
@@ -76,5 +78,7 @@ function validateUser(user) {
     });
 }
 
-module.exports.User = User;
-module.exports.validate = validateUser;
+module.exports = {
+    User,
+    validate
+}
