@@ -6,9 +6,26 @@ const { success } = require('../utils/apiResponse');
 
 const { User } = require("../models/User");
 
+
+
+/**
+ * @route   GET /api/v1/users/:id
+ * @desc    Check if a user exists by ID
+ * @access  Public
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
 const checkUserExists = async (req, res) => {
     // Define Joi schema for params validation
-    const schema = Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid User Id!");
+    const schema = Joi.string()
+        .label('User ID')
+        .required()
+        .regex(/^[0-9a-fA-F]{24}$/)
+        .rule({ message: '{{#label}} is Invalid!' });
 
     // Validate request param with Joi schema
     const { error, value: userId } = schema.validate(req.params.id);
@@ -23,6 +40,19 @@ const checkUserExists = async (req, res) => {
 
     return res.status(200).json(success("User exists", 200));
 }
+
+
+
+/**
+ * @route   POST /api/v1/users/change-password
+ * @desc    Change the password of the logged-in user
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
 
 const changePassword = async (req, res) => {
     // Define Joi schema for input validation
@@ -64,9 +94,35 @@ const changePassword = async (req, res) => {
     return res.status(200).json(success("Account Password Updated Successfully", 200));
 }
 
+
+
+/**
+ * @route   GET /api/v1/users/loggedin
+ * @desc    Get the details of the logged-in user
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
 const getLoggedInUser = async (req, res) => {
     return res.status(200).json(success("Success", 200, { user: req.user }));
 }
+
+
+
+/**
+ * @route   GET /api/v1/users
+ * @desc    Get all users except the logged-in user
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
 
 const getAllUsers = async (req, res) => {
     let filter = req.query.search ? { 

@@ -13,6 +13,19 @@ const { success } = require('../utils/apiResponse');
 
 const { User, validate } = require("../models/User");
 
+
+
+/**
+ * @route   POST /api/v1/auth/login
+ * @desc    Login a user
+ * @access  Public
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
 const loginUser = async (req, res) => {
     // Joi Schema for input validation
     const schema = Joi.object({
@@ -39,6 +52,20 @@ const loginUser = async (req, res) => {
 
     return res.status(200).json(success("LoggedInn successfully", 200, { token }));
 }
+
+
+
+/**
+ * @route   POST /api/v1/auth/register
+ * @desc    Register a new user
+ * @access  Public
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ * @param   {Function} next - Next middleware function.
+ *
+ * @returns {void}
+ */
 
 const registerUser = async (req, res, next) => {
     const storage = multer.diskStorage({
@@ -141,6 +168,19 @@ const registerUser = async (req, res, next) => {
     });
 };
 
+
+
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Send a password reset email to the user
+ * @access  Public
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
 const sendUserPasswordResetEmail = async (req, res) => {
     // Define Joi schema for input validation
     const schema = Joi.object({ email: Joi.string().email().required() });
@@ -171,6 +211,19 @@ const sendUserPasswordResetEmail = async (req, res) => {
         200
     ));
 }
+
+
+
+/**
+ * @route   POST /api/v1/auth/reset-password
+ * @desc    Reset user password with a valid reset token
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
 
 const resetPassword = async (req, res) => {
     // Define Joi schema for input validation
