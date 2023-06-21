@@ -35,7 +35,7 @@ const checkUserExists = async (req, res) => {
     }
 
     // Check if user already exists in database or not
-    let checkId = await User.findOne({ id: userId });
+    let checkId = await User.findOne({ _id: userId });
     if (!checkId) throw new AppError("User Not Found", 404);
 
     return res.status(200).json(success("User exists", 200));

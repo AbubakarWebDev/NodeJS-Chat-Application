@@ -7,6 +7,7 @@ const AppError = require("../utils/AppError");
 const { success } = require('../utils/apiResponse');
 
 
+
 /**
  * @route   POST /api/v1/chats
  * @desc    get or create the chat of the specified user with the current user
@@ -34,8 +35,8 @@ const getOrCreateChat = async (req, res) => {
     }
 
     // Check if user already exists in database or not
-    let checkId = await User.findOne({ id: userId });
-    if (!checkId) throw new AppError("User Not Found", 404);
+    let checkId = await User.findOne({ _id: userId });
+    if (!checkId) throw new AppError("UserId is not registered", 404);
 
     const chat = await Chat.find({
         isGroupChat: false,
@@ -131,7 +132,79 @@ const getAllChats = async (req, res) => {
 
 
 
+/**
+ * @route   POST /api/v1/chats/group
+ * @desc    Create the group chat for at least two users
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+const createGroupChat = async (req, res) => {
+    return res.status(200).json(success("Success", 200, { success: "createGroupChat" }));
+}
+
+
+
+/**
+ * @route   POST /api/v1/chats/group/rename
+ * @desc    Rename the Group chat name
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+const renameGroupChat = async (req, res) => {
+    return res.status(200).json(success("Success", 200, { success: "renameGroupChat" }));
+}
+
+
+
+/**
+ * @route   POST /api/v1/chats/group/add-member
+ * @desc    Add the user to the group
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+const addtoGroup = async (req, res) => {
+    return res.status(200).json(success("Success", 200, { success: "addtoGroup" }));
+}
+
+
+
+/**
+ * @route   POST /api/v1/chats/group/remove-member
+ * @desc    Remove the user from the group
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+const removeFromGroup = async (req, res) => {
+    return res.status(200).json(success("Success", 200, { success: "removeFromGroup" }));
+}
+
+
+
 module.exports = {
     getOrCreateChat,
-    getAllChats
+    getAllChats,
+    createGroupChat,
+    renameGroupChat,
+    addtoGroup,
+    removeFromGroup
 }
