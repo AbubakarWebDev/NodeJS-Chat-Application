@@ -38,21 +38,25 @@ const getOrCreateChat = async (req, res) => {
     let checkId = await User.findOne({ _id: userId });
     if (!checkId) throw new AppError("UserId is not registered", 404);
 
+    if (userId == req.user._id.toString()) {
+        throw new AppError("Duplicate UserId. User Not able to create chat with itself", 400);
+    }
+
     const chat = await Chat.find({
         isGroupChat: false,
         $and: [
-            { 
-                users: { 
-                    $elemMatch: { 
-                        $eq: req.user._id 
-                    } 
+            {
+                users: {
+                    $elemMatch: {
+                        $eq: req.user._id.toString()
+                    }
                 }
             },
             {
-                users: { 
-                    $elemMatch: { 
+                users: {
+                    $elemMatch: {
                         $eq: userId
-                    } 
+                    }
                 }
             },
         ],
@@ -73,13 +77,11 @@ const getOrCreateChat = async (req, res) => {
         return res.status(200).json(success("Success", 200, { chat: chat[0] }));
     }
     else {
-        let chatData = {
+        const createdChat = await Chat.create({
             chatName: "sender",
             isGroupChat: false,
-            users: [req.user._id, userId],
-        };
-
-        const createdChat = await Chat.create(chatData);
+            users: [req.user._id.toString(), userId],
+        });
 
         const completeChat = await Chat.findOne({ _id: createdChat._id }).populate({
             path: "users",
@@ -104,10 +106,10 @@ const getOrCreateChat = async (req, res) => {
  */
 
 const getAllChats = async (req, res) => {
-    
-    const chats = await Chat.find({ 
-        users: { 
-            $elemMatch: { $eq: req.user._id } 
+
+    const chats = await Chat.find({
+        users: {
+            $elemMatch: { $eq: req.user._id.toString() }
         }
     })
         .populate({
@@ -144,7 +146,60 @@ const getAllChats = async (req, res) => {
  */
 
 const createGroupChat = async (req, res) => {
-    return res.status(200).json(success("Success", 200, { success: "createGroupChat" }));
+    // Joi Schema for input validation
+    const schema = Joi.object({
+        users: Joi.array()
+            .items(
+                Joi.string()
+                    .label('User ID')
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .rule({ message: 'Any {{#label}} is Invalid!' })
+            )
+            .min(1)
+            .unique()
+            .required(),
+
+        chatName: Joi.string().min(3).max(50).trim().required()
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+        throw new AppError(error.details[0].message, 422);
+    }
+
+    const checkCurrentUserId = value.users.some((userId) => userId === req.user._id.toString());
+    if (checkCurrentUserId) {
+        throw new AppError("Duplicate UserId. Current LoggedIn User Id present in users Array", 400);
+    }
+
+    for (let i = 0; i < value.users.length; i++) {
+        const userId = value.users[i];
+
+        // Check if user already exists in database or not
+        let checkId = await User.findOne({ _id: userId });
+        if (!checkId) throw new AppError(`"users[${i}]" is not found on database`, 404);
+    }
+
+    const groupChat = await Chat.create({
+        isGroupChat: true,
+        chatName: value.chatName,
+        groupAdmin: req.user._id.toString(),
+        users: [...value.users, req.user._id.toString()],
+    });
+
+    const fullGroupChat = await Chat
+        .findOne({ _id: groupChat._id })
+        .populate({
+            path: "users",
+            select: "-password",
+        })
+        .populate({
+            path: "groupAdmin",
+            select: "-password",
+        })
+
+    return res.status(200).json(success("Success", 200, { groupChat: fullGroupChat }));
 }
 
 
@@ -161,7 +216,42 @@ const createGroupChat = async (req, res) => {
  */
 
 const renameGroupChat = async (req, res) => {
-    return res.status(200).json(success("Success", 200, { success: "renameGroupChat" }));
+    // Joi Schema for input validation
+    const schema = Joi.object({
+        chatId: Joi.string()
+            .label('Chat ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+
+        chatName: Joi.string().min(3).max(50).trim().required()
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+        throw new AppError(error.details[0].message, 422);
+    }
+
+    // Check if chat Id already exists in database or not
+    let checkId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
+    if (!checkId) throw new AppError("ChatId is Not Valid or Not found on database", 404);
+
+    const updatedChat = await Chat.findByIdAndUpdate(
+        value.chatId,
+        { chatName: value.chatName },
+        { new: true }
+    )
+        .populate({
+            path: "users",
+            select: "-password",
+        })
+        .populate({
+            path: "groupAdmin",
+            select: "-password",
+        });
+
+    return res.status(200).json(success("Success", 200, { success: { chat: updatedChat } }));
 }
 
 
@@ -178,7 +268,58 @@ const renameGroupChat = async (req, res) => {
  */
 
 const addtoGroup = async (req, res) => {
-    return res.status(200).json(success("Success", 200, { success: "addtoGroup" }));
+    // Joi Schema for input validation
+    const schema = Joi.object({
+        chatId: Joi.string()
+            .label('Chat ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+
+        userId: Joi.string()
+            .label('User ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+        throw new AppError(error.details[0].message, 422);
+    }
+
+    // Check if chat Id already exists in database or not
+    let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
+    if (!checkChatId) throw new AppError("chatId is not found on database", 404);
+
+    // Check if user already exists in database or not
+    let checkUserId = await User.findOne({ _id: value.userId });
+    if (!checkUserId) throw new AppError("userId is not found on database", 404);
+
+    // Check if userId already attached to the chatId
+    let checkUserExistOnChat = await Chat.findOne({
+        _id: value.chatId,
+        isGroupChat: true,
+        users: { $elemMatch: { $eq: value.userId } }
+    });
+    if (checkUserExistOnChat) throw new AppError("This User Already Added on this group", 404);
+
+    const updatedChat = await Chat.findByIdAndUpdate(
+        value.chatId,
+        { $push: { users: value.userId } },
+        { new: true }
+    )
+        .populate({
+            path: "users",
+            select: "-password",
+        })
+        .populate({
+            path: "groupAdmin",
+            select: "-password",
+        });
+
+    return res.status(200).json(success("Success", 200, { success: { chat: updatedChat } }));
 }
 
 
@@ -195,7 +336,58 @@ const addtoGroup = async (req, res) => {
  */
 
 const removeFromGroup = async (req, res) => {
-    return res.status(200).json(success("Success", 200, { success: "removeFromGroup" }));
+    // Joi Schema for input validation
+    const schema = Joi.object({
+        chatId: Joi.string()
+            .label('Chat ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+
+        userId: Joi.string()
+            .label('User ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+        throw new AppError(error.details[0].message, 422);
+    }
+
+    // Check if user already exists in database or not
+    let checkUserId = await User.findOne({ _id: value.userId });
+    if (!checkUserId) throw new AppError("userId is not found on database", 404);
+
+    // Check if chat Id already exists in database or not
+    let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
+    if (!checkChatId) throw new AppError("chatId is not found on database", 404);
+
+    // Check if userId already attached to the chatId
+    let checkUserExistOnChat = await Chat.findOne({
+        _id: value.chatId,
+        isGroupChat: true,
+        users: { $elemMatch: { $eq: value.userId } }
+    });
+    if (!checkUserExistOnChat) throw new AppError("This User Already Added on this group", 404);
+
+    const updatedChat = await Chat.findByIdAndUpdate(
+        value.chatId,
+        { $pull: { users: value.userId } },
+        { new: true }
+    )
+        .populate({
+            path: "users",
+            select: "-password",
+        })
+        .populate({
+            path: "groupAdmin",
+            select: "-password",
+        });
+
+    return res.status(200).json(success("Success", 200, { success: { chat: updatedChat } }));
 }
 
 
