@@ -251,7 +251,7 @@ const renameGroupChat = async (req, res) => {
             select: "-password",
         });
 
-    return res.status(200).json(success("Success", 200, { success: { chat: updatedChat } }));
+    return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
 
 
@@ -319,7 +319,7 @@ const addtoGroup = async (req, res) => {
             select: "-password",
         });
 
-    return res.status(200).json(success("Success", 200, { success: { chat: updatedChat } }));
+    return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
 
 
@@ -387,16 +387,15 @@ const removeFromGroup = async (req, res) => {
             select: "-password",
         });
 
-    return res.status(200).json(success("Success", 200, { success: { chat: updatedChat } }));
+    return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
-
 
 
 module.exports = {
     getOrCreateChat,
-    getAllChats,
     createGroupChat,
     renameGroupChat,
-    addtoGroup,
-    removeFromGroup
-}
+    removeFromGroup,
+    getAllChats,
+    addtoGroup
+};

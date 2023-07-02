@@ -142,9 +142,9 @@ const registerUser = async (req, res, next) => {
                 throw new AppError("Avatar Image is Required!", 400);
             }
 
-            const filePath = req.file.path;
+            const filePath = req.file.path.replaceAll('\\', '/');
             const newFilePath = filePath.replace('public/', '');
-    
+
             // Create new user in database
             let user = new User({
                 username: req.body.username,

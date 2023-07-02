@@ -6,7 +6,7 @@ const cors = require('cors');
 module.exports = function(app) {
     // for secure express app by setting various HTTP headers.
     // https://www.securecoding.com/blog/using-helmetjs/
-    app.use(helmet());
+    app.use(helmet({ crossOriginResourcePolicy: false }));
 
     // for serve static files such as images, CSS files, and JavaScript files in a directory named 'public'
     app.use(express.static('public'));
@@ -27,7 +27,7 @@ module.exports = function(app) {
 
     // for enabling cors requests from clients for a specific set of origins
     app.use(cors({
-        origin: ['http://localhost:3005'],
+        origin: [process.env.FRONTEND_BASE_URL],
         optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
     }));
 
