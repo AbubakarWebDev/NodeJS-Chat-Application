@@ -159,7 +159,7 @@ const createGroupChat = async (req, res) => {
             .unique()
             .required(),
 
-        chatName: Joi.string().min(3).max(50).trim().required()
+        chatName: Joi.string().min(3).max(50).trim().required(),
     });
 
     // Validate request body with Joi schema
@@ -364,6 +364,10 @@ const removeFromGroup = async (req, res) => {
     // Check if chat Id already exists in database or not
     let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
     if (!checkChatId) throw new AppError("chatId is not found on database", 404);
+
+    if (checkChatId.groupAdmin.toString() !== req.user._id.toString()) {
+        throw new AppError("Admin can only remove the member of the Group!", 404);
+    }
 
     // Check if userId already attached to the chatId
     let checkUserExistOnChat = await Chat.findOne({

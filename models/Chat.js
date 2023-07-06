@@ -9,6 +9,10 @@ const chatSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    groupIcon: {
+        type: String,
+        default: "group-icon.png"
+    },
     latestMessage: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Message",
