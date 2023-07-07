@@ -108,16 +108,25 @@ const getOrCreateChat = async (req, res) => {
 const getAllChats = async (req, res) => {
 
     const chats = await Chat.find({
-        users: {
-            $elemMatch: { $eq: req.user._id.toString() }
-        }
+        $or: [
+            {
+                users: {
+                    $elemMatch: { $eq: req.user._id.toString() }
+                },
+            },
+            {
+                groupAdmins: {
+                    $elemMatch: { $eq: req.user._id.toString() }
+                }
+            }
+        ]
     })
         .populate({
             path: "users",
             select: "-password",
         })
         .populate({
-            path: "groupAdmin",
+            path: "groupAdmins",
             select: "-password",
         })
         .populate({
@@ -129,7 +138,19 @@ const getAllChats = async (req, res) => {
         })
         .sort({ updatedAt: -1 });
 
-    return res.status(200).json(success("Success", 200, { chats }));
+    // Modify the JSON to exclude duplicate users in groupAdmins
+    const modifiedChats = chats.map(chat => {
+        const filteredUsers = chat.users.filter(user => {
+            return !chat.groupAdmins.some(admin => admin._id.toString() === user._id.toString());
+        });
+
+        return {
+            ...chat.toObject(),
+            users: filteredUsers
+        };
+    });
+
+    return res.status(200).json(success("Success", 200, { chats: modifiedChats }));
 }
 
 
@@ -184,7 +205,7 @@ const createGroupChat = async (req, res) => {
     const groupChat = await Chat.create({
         isGroupChat: true,
         chatName: value.chatName,
-        groupAdmin: req.user._id.toString(),
+        groupAdmins: [req.user._id.toString()],
         users: [...value.users, req.user._id.toString()],
     });
 
@@ -195,7 +216,7 @@ const createGroupChat = async (req, res) => {
             select: "-password",
         })
         .populate({
-            path: "groupAdmin",
+            path: "groupAdmins",
             select: "-password",
         })
 
@@ -247,7 +268,7 @@ const renameGroupChat = async (req, res) => {
             select: "-password",
         })
         .populate({
-            path: "groupAdmin",
+            path: "groupAdmins",
             select: "-password",
         });
 
@@ -315,7 +336,7 @@ const addtoGroup = async (req, res) => {
             select: "-password",
         })
         .populate({
-            path: "groupAdmin",
+            path: "groupAdmins",
             select: "-password",
         });
 
@@ -365,7 +386,7 @@ const removeFromGroup = async (req, res) => {
     let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
     if (!checkChatId) throw new AppError("chatId is not found on database", 404);
 
-    if (checkChatId.groupAdmin.toString() !== req.user._id.toString()) {
+    if (!checkChatId.groupAdmins.some((user) => user._id.toString() === req.user._id.toString())) {
         throw new AppError("Admin can only remove the member of the Group!", 404);
     }
 
@@ -387,7 +408,7 @@ const removeFromGroup = async (req, res) => {
             select: "-password",
         })
         .populate({
-            path: "groupAdmin",
+            path: "groupAdmins",
             select: "-password",
         });
 
@@ -395,11 +416,142 @@ const removeFromGroup = async (req, res) => {
 }
 
 
+
+/**
+ * @route   POST /api/v1/chats/group/users
+ * @desc    Update all the users of the group
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+const updateGroupUsers = async (req, res) => {
+    // Joi Schema for input validation
+    const schema = Joi.object({
+        chatId: Joi.string()
+            .label('Chat ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+
+        users: Joi.array()
+            .items(
+                Joi.string()
+                    .label('User ID')
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .rule({ message: 'Any {{#label}} is Invalid!' })
+            )
+            .min(1)
+            .unique()
+            .required(),
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+        throw new AppError(error.details[0].message, 422);
+    }
+
+    // Check if chat Id already exists in database or not
+    let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
+    if (!checkChatId) throw new AppError("chatId is not found on database", 404);
+
+    if (!checkChatId.groupAdmins.some((user) => user._id.toString() === req.user._id.toString())) {
+        throw new AppError("Admin can only update the members of the Group!", 404);
+    }
+
+    const updatedChat = await Chat.findByIdAndUpdate(
+        value.chatId,
+        { $set: { users: value.users } },
+        { new: true }
+    )
+        .populate({
+            path: "users",
+            select: "-password",
+        })
+        .populate({
+            path: "groupAdmins",
+            select: "-password",
+        });
+
+    return res.status(200).json(success("Success", 200, { chat: updatedChat }));
+}
+
+
+
+/**
+ * @route   POST /api/v1/chats/group/admins
+ * @desc    Update all the admins of the group
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+const updateAdminUser = async (req, res) => {
+    // Joi Schema for input validation
+    const schema = Joi.object({
+        chatId: Joi.string()
+            .label('Chat ID')
+            .required()
+            .regex(/^[0-9a-fA-F]{24}$/)
+            .rule({ message: '{{#label}} is Invalid!' }),
+
+        users: Joi.array()
+            .items(
+                Joi.string()
+                    .label('User ID')
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .rule({ message: 'Any {{#label}} is Invalid!' })
+            )
+            .min(1)
+            .unique()
+            .required(),
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+        throw new AppError(error.details[0].message, 422);
+    }
+
+    // Check if chat Id already exists in database or not
+    let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
+    if (!checkChatId) throw new AppError("chatId is not found on database", 404);
+
+    if (!checkChatId.groupAdmins.some((user) => user._id.toString() === req.user._id.toString())) {
+        throw new AppError("Admin can only update the members of the Group!", 404);
+    }
+
+    const updatedChat = await Chat.findByIdAndUpdate(
+        value.chatId,
+        { $set: { users: value.users } },
+        { new: true }
+    )
+        .populate({
+            path: "users",
+            select: "-password",
+        })
+        .populate({
+            path: "groupAdmins",
+            select: "-password",
+        });
+
+    return res.status(200).json(success("Success", 200, { chat: updatedChat }));
+}
+
 module.exports = {
+    updateGroupUsers,
+    updateAdminUser,
     getOrCreateChat,
     createGroupChat,
     renameGroupChat,
     removeFromGroup,
     getAllChats,
-    addtoGroup
+    addtoGroup,
 };
