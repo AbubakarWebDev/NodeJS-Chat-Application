@@ -346,7 +346,7 @@ const addtoGroup = async (req, res) => {
 
 
 /**
- * @route   POST /api/v1/chats/group/remove-member
+ * @route   PUT /api/v1/chats/group/remove-member
  * @desc    Remove the user from the group
  * @access  Protected
  *
@@ -386,8 +386,18 @@ const removeFromGroup = async (req, res) => {
     let checkChatId = await Chat.findOne({ _id: value.chatId, isGroupChat: true });
     if (!checkChatId) throw new AppError("chatId is not found on database", 404);
 
-    if (!checkChatId.groupAdmins.some((user) => user._id.toString() === req.user._id.toString())) {
-        throw new AppError("Admin can only remove the member of the Group!", 404);
+    const isLoggedInUserAdmin = checkChatId.groupAdmins.some((user) => user._id.toString() === req.user._id.toString());
+
+    if (!isLoggedInUserAdmin && (value.userId !== req.user._id.toString())) {
+        throw new AppError("Admin can only remove the member of the Group!", 400);
+    }
+
+    if (
+        (isLoggedInUserAdmin) && 
+        (checkChatId.groupAdmins.length === 1) && 
+        (value.userId === req.user._id.toString())
+    ) {
+        throw new AppError("Unable to leave the group. As the sole admin, you must first assign another user as an admin before leaving", 400);
     }
 
     // Check if userId already attached to the chatId
@@ -493,7 +503,7 @@ const updateGroupUsers = async (req, res) => {
  * @returns {void}
  */
 
-const updateAdminUser = async (req, res) => {
+const updateAdminUsers = async (req, res) => {
     // Joi Schema for input validation
     const schema = Joi.object({
         chatId: Joi.string()
@@ -547,7 +557,7 @@ const updateAdminUser = async (req, res) => {
 
 module.exports = {
     updateGroupUsers,
-    updateAdminUser,
+    updateAdminUsers,
     getOrCreateChat,
     createGroupChat,
     renameGroupChat,
