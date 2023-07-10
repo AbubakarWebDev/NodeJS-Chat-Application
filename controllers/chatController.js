@@ -69,7 +69,7 @@ const getOrCreateChat = async (req, res) => {
             path: "latestMessage",
             populate: {
                 path: "sender",
-                select: "username, firstName, lastName, avatar",
+                select: "username firstName lastName avatar",
             }
         });
 
@@ -133,7 +133,7 @@ const getAllChats = async (req, res) => {
             path: "latestMessage",
             populate: {
                 path: "sender",
-                select: "username, firstName, lastName, avatar",
+                select: "username firstName lastName avatar",
             }
         })
         .sort({ updatedAt: -1 });
