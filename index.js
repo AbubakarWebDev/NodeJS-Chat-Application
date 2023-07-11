@@ -12,6 +12,8 @@ require("./startup/db")();
 require("./startup/middlewares")(app);
 require("./startup/routers")(app);
 
-app.listen(process.env.PORT, () => {
+const server = app.listen(process.env.PORT, () => {
     debug(`Server running on http://localhost:${process.env.PORT}`);
 });
+
+require("./startup/websockets")(server);
