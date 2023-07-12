@@ -38,9 +38,20 @@ const getAllMessages = async (req, res) => {
     // Check if userId already attached to the chatId
     let checkUserExistOnChat = await Chat.findOne({
         _id: chatId,
-        users: { $elemMatch: { $eq: req.user._id } }
+        $or: [
+            {
+                users: {
+                    $elemMatch: { $eq: req.user._id.toString() }
+                },
+            },
+            {
+                groupAdmins: {
+                    $elemMatch: { $eq: req.user._id.toString() }
+                }
+            }
+        ]
     });
-    if (!checkUserExistOnChat) throw new AppError("This User is not attached with this chat", 404);
+    if (!checkUserExistOnChat) throw new AppError("This User is not attached with this chat", 400);
 
     const messages = await Message.find({
         chat: chatId,

@@ -138,19 +138,7 @@ const getAllChats = async (req, res) => {
         })
         .sort({ updatedAt: -1 });
 
-    // Modify the JSON to exclude duplicate users in groupAdmins
-    const modifiedChats = chats.map(chat => {
-        const filteredUsers = chat.users.filter(user => {
-            return !chat.groupAdmins.some(admin => admin._id.toString() === user._id.toString());
-        });
-
-        return {
-            ...chat.toObject(),
-            users: filteredUsers
-        };
-    });
-
-    return res.status(200).json(success("Success", 200, { chats: modifiedChats }));
+    return res.status(200).json(success("Success", 200, { chats }));
 }
 
 
@@ -206,7 +194,7 @@ const createGroupChat = async (req, res) => {
         isGroupChat: true,
         chatName: value.chatName,
         groupAdmins: [req.user._id.toString()],
-        users: [...value.users, req.user._id.toString()],
+        users: [...value.users],
     });
 
     const fullGroupChat = await Chat
@@ -218,9 +206,9 @@ const createGroupChat = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        })
+        });
 
-    return res.status(200).json(success("Success", 200, { groupChat: fullGroupChat }));
+    return res.status(200).json(success("Success", 200, { chat: fullGroupChat }));
 }
 
 
