@@ -214,7 +214,7 @@ const createGroupChat = async (req, res) => {
 
 
 /**
- * @route   POST /api/v1/chats/group/rename
+ * @route   PUT /api/v1/chats/group/rename
  * @desc    Rename the Group chat name
  * @access  Protected
  *
@@ -266,7 +266,7 @@ const renameGroupChat = async (req, res) => {
 
 
 /**
- * @route   POST /api/v1/chats/group/add-member
+ * @route   PUT /api/v1/chats/group/add-member
  * @desc    Add the user to the group
  * @access  Protected
  *
@@ -416,7 +416,7 @@ const removeFromGroup = async (req, res) => {
 
 
 /**
- * @route   POST /api/v1/chats/group/users
+ * @route   PUT /api/v1/chats/group/users
  * @desc    Update all the users of the group
  * @access  Protected
  *
@@ -481,7 +481,7 @@ const updateGroupUsers = async (req, res) => {
 
 
 /**
- * @route   POST /api/v1/chats/group/admins
+ * @route   PUT /api/v1/chats/group/admins
  * @desc    Update all the admins of the group
  * @access  Protected
  *
