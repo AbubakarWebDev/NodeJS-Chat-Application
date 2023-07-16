@@ -107,36 +107,152 @@ const getOrCreateChat = async (req, res) => {
 
 const getAllChats = async (req, res) => {
 
-    const chats = await Chat.find({
-        $or: [
-            {
-                users: {
-                    $elemMatch: { $eq: req.user._id.toString() }
-                },
-            },
-            {
-                groupAdmins: {
-                    $elemMatch: { $eq: req.user._id.toString() }
-                }
+    // const chats = await Chat.find({
+    // $or: [
+    //     {
+    //         users: {
+    //             $elemMatch: { $eq: req.user._id.toString() }
+    //         },
+    //     },
+    //     {
+    //         groupAdmins: {
+    //             $elemMatch: { $eq: req.user._id.toString() }
+    //         }
+    //     }
+    // ]
+    // })
+    //     .populate({
+    //         path: "users",
+    //         select: "-password",
+    //     })
+    //     .populate({
+    //         path: "groupAdmins",
+    //         select: "-password",
+    //     })
+    //     .populate({
+    //         path: "latestMessage",
+    //         populate: {
+    //             path: "sender",
+    //             select: "username firstName lastName avatar",
+    //         }
+    //     })
+    //     .sort({ updatedAt: -1 });
+
+    const chats = await Chat.aggregate([
+        {
+            $match: {
+                $or: [
+                    {
+                        users: {
+                            $elemMatch: { $eq: req.user._id }
+                        },
+                    },
+                    {
+                        groupAdmins: {
+                            $elemMatch: { $eq: req.user._id }
+                        }
+                    }
+                ]
             }
-        ]
-    })
-        .populate({
-            path: "users",
-            select: "-password",
-        })
-        .populate({
-            path: "groupAdmins",
-            select: "-password",
-        })
-        .populate({
-            path: "latestMessage",
-            populate: {
-                path: "sender",
-                select: "username firstName lastName avatar",
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "users",
+                as: "users"
             }
-        })
-        .sort({ updatedAt: -1 });
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "groupAdmins",
+                as: "groupAdmins"
+            }
+        },
+        {
+            $lookup: {
+                from: "messages",
+                localField: "latestMessage",
+                foreignField: "_id",
+                as: "latestMessage",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "sender",
+                            foreignField: "_id",
+                            as: "sender",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        "username": 1,
+                                        "firstName": 1,
+                                        "lastName": 1,
+                                        "avatar": 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $set: {
+                            "sender": { $first: "$sender" },
+                        }
+                    },
+                ]
+            }
+        },
+        {
+            $set: {
+                "latestMessage": { $first: "$latestMessage" },
+            }
+        },
+        {
+            $lookup: {
+                from: "messages",
+                foreignField: "chat",
+                localField: "_id",
+                as: "messages",
+                pipeline: [
+                    {
+                        $match: {
+                            $and: [
+                                {
+                                    $expr: { $ne: ["$sender", req.user._id] }
+                                },
+                                {
+                                    $expr: {
+                                        $not: {
+                                            $in: [req.user._id, "$readBy"]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                ]
+            }
+        },
+        {
+            $addFields: {
+                unReadCount: { $size: "$messages" }
+            }
+        },
+        {
+            $project: {
+                "users.password": 0,
+                "groupAdmins.password": 0,
+                "messages": 0
+            }
+        },
+        {
+            $sort: {
+                updatedAt: -1
+            }
+        }
+    ]);
 
     return res.status(200).json(success("Success", 200, { chats }));
 }
@@ -310,7 +426,18 @@ const addtoGroup = async (req, res) => {
     let checkUserExistOnChat = await Chat.findOne({
         _id: value.chatId,
         isGroupChat: true,
-        users: { $elemMatch: { $eq: value.userId } }
+        $or: [
+            {
+                users: {
+                    $elemMatch: { $eq: value.userId }
+                },
+            },
+            {
+                groupAdmins: {
+                    $elemMatch: { $eq: value.userId }
+                }
+            }
+        ]
     });
     if (checkUserExistOnChat) throw new AppError("This User Already Added on this group", 404);
 
@@ -381,8 +508,8 @@ const removeFromGroup = async (req, res) => {
     }
 
     if (
-        (isLoggedInUserAdmin) && 
-        (checkChatId.groupAdmins.length === 1) && 
+        (isLoggedInUserAdmin) &&
+        (checkChatId.groupAdmins.length === 1) &&
         (value.userId === req.user._id.toString())
     ) {
         throw new AppError("Unable to leave the group. As the sole admin, you must first assign another user as an admin before leaving", 400);

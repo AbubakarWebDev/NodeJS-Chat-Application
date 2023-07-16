@@ -20,24 +20,36 @@ module.exports = function (server) {
             io.emit('onlineUsers', onlineUsers);
         });
 
+        socket.on('joinChat', (chatId) => {
+            socket.join(chatId);
+        });
+
+        socket.on('typing', ({ chatId, user }) => {
+            io.to(chatId).emit('startTyping', { chatId, user });
+        });
+
+        socket.on('typingOff', ({ chatId, user }) => {
+            io.to(chatId).emit('stopTyping', { chatId, user });
+        });
+
         socket.on('sendMessage', (message) => {
-            message.chat.users.forEach((user) => {
+            [...message.chat.users, ...message.chat.groupAdmins].forEach((user) => {
                 if (user !== message.sender._id) {
                     io.to(user).emit('receiveMessage', message);
                 }
-            })
+            });
         });
 
         socket.on('disconnect', () => {
             for (const key in onlineUsers) {
-                if (onlineUsers[key] === socketId) { 
+                if (onlineUsers[key] === socketId) {
                     console.log(`A user with the id: ${socketId} is disconnected`);
 
                     socket.leave(key);
                     delete onlineUsers[key];
                 }
             }
-            
+
             io.emit('onlineUsers', onlineUsers);
         });
     });

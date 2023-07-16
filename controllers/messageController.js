@@ -41,12 +41,12 @@ const getAllMessages = async (req, res) => {
         $or: [
             {
                 users: {
-                    $elemMatch: { $eq: req.user._id.toString() }
+                    $elemMatch: { $eq: req.user._id }
                 },
             },
             {
                 groupAdmins: {
-                    $elemMatch: { $eq: req.user._id.toString() }
+                    $elemMatch: { $eq: req.user._id }
                 }
             }
         ]
@@ -102,7 +102,18 @@ const sendMessage = async (req, res) => {
     // Check if userId already attached to the chatId
     let checkUserExistOnChat = await Chat.findOne({
         _id: value.chatId,
-        users: { $elemMatch: { $eq: req.user._id } }
+        $or: [
+            {
+                users: {
+                    $elemMatch: { $eq: req.user._id }
+                },
+            },
+            {
+                groupAdmins: {
+                    $elemMatch: { $eq: req.user._id }
+                }
+            }
+        ]
     });
     if (!checkUserExistOnChat) throw new AppError("This User is not attached with this chat", 404);
 
@@ -161,21 +172,40 @@ const updateReadBy = async (req, res) => {
     }
 
     // Check if userId already attached to the chatId
-    let checkMessageExist = await Message.findOne({ 
+    let checkMessageExist = await Message.findOne({
         _id: value.messageId,
-        $ne: { sender: req.user._id.toString() },
-        readBy: { $nin: [req.user._id] }
+        $and: [
+            {
+                $ne: { sender: req.user._id },
+            },
+            {
+                readBy: { $nin: [req.user._id] }
+            }
+        ]
     });
     if (!checkMessageExist) throw new AppError("Invalid Message Id or Message update", 400);
 
     // Check if userId already attached to the chatId
     let checkUserExistOnChat = await Chat.findOne({
         _id: checkMessageExist.chat,
-        users: { $elemMatch: { $eq: req.user._id } }
+        $or: [
+            {
+                users: {
+                    $elemMatch: { $eq: req.user._id }
+                },
+            },
+            {
+                groupAdmins: {
+                    $elemMatch: { $eq: req.user._id }
+                }
+            }
+        ]
     });
     if (!checkUserExistOnChat) throw new AppError("This User is not attached with this chat", 404);
 
-    const updatedMessage = await Message.findByIdAndUpdate(checkMessageExist._id, { $push: { readBy: req.user._id } }, { new: true });
+    const updatedMessage = await Message.findByIdAndUpdate(checkMessageExist._id, { 
+        $push: { readBy: req.user._id } 
+    }, { new: true });
 
     const completeMessage = await Message.findOne({ _id: updatedMessage._id })
         .populate({

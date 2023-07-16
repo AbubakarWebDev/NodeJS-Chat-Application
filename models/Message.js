@@ -18,7 +18,8 @@ const messageSchema = mongoose.Schema({
         ref: "User"
     }],
 }, { 
-    timestamps: true 
+    timestamps: true,
+    collection: "messages"
 });
 
 const Message = mongoose.model("Message", messageSchema);

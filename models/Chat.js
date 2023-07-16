@@ -18,15 +18,16 @@ const chatSchema = new mongoose.Schema({
         ref: "Message",
     },
     groupAdmins: [{
-        type: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
     users: [{
-        type: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
-}, { 
-    timestamps: true 
+}, {
+    timestamps: true,
+    collection: "chats"
 });
 
 const Chat = mongoose.model("Chat", chatSchema);

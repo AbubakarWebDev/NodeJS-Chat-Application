@@ -37,7 +37,8 @@ const userSchema = new mongoose.Schema({
         required: true
     }
 }, {
-    timestamps: true 
+    timestamps: true,
+    collection: "users"
 });
 
 userSchema.methods.generateAuthToken = async function () {
