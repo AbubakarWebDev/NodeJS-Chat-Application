@@ -24,12 +24,22 @@ module.exports = function (server) {
             socket.join(chatId);
         });
 
+        socket.on('joinNewGroupChat', ({ chat, userId }) => {
+            socket.join(chat._id);
+
+            [...chat.users, ...chat.groupAdmins].forEach((user) => {
+                if (user._id !== userId) {
+                    io.to(user._id).emit('joinGroupChat', chat);
+                }
+            });
+        });
+
         socket.on('typing', ({ chatId, user }) => {
-            io.to(chatId).emit('startTyping', { chatId, user });
+            io.to(chatId).except(user._id).emit('startTyping', { chatId, user });
         });
 
         socket.on('typingOff', ({ chatId, user }) => {
-            io.to(chatId).emit('stopTyping', { chatId, user });
+            io.to(chatId).except(user._id).emit('stopTyping', { chatId, user });
         });
 
         socket.on('sendMessage', (message) => {
