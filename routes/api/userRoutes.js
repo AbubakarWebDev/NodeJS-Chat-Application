@@ -1,21 +1,19 @@
-const router = require('express').Router();
+const router = require("express").Router();
 
-const authenticateToken = require('../../middlewares/authenticateToken');
+const authenticateToken = require("../../middlewares/authenticateToken");
 
-const { 
-    checkUserExists, 
-    getLoggedInUser, 
-    changePassword,
-    getAllUsers
-} = require('../../controllers/userController');
-
+const UserController = require("../../controllers/userController");
 
 // Protected Routes
-router.get('/', authenticateToken, getAllUsers);
-router.get('/loggedin', authenticateToken, getLoggedInUser);
-router.post('/change-password', authenticateToken, changePassword);
+router.get("/", authenticateToken, UserController.getAllUsers);
+router.get("/loggedin", authenticateToken, UserController.getLoggedInUser);
+router.post(
+  "/change-password",
+  authenticateToken,
+  UserController.changePassword
+);
 
 // Public Routes
-router.get('/:id', checkUserExists);
+router.get("/:id", UserController.checkUserExists);
 
 module.exports = router;
