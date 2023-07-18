@@ -34,6 +34,22 @@ module.exports = function (server) {
             });
         });
 
+        socket.on('updateGroupChat', ({ chat, userId, addedUser, removedUser }) => {
+            [...chat.users, ...chat.groupAdmins].forEach((user) => {
+                if (user._id !== userId) {
+                    io.to(user._id).emit('updatedGroupChat', chat);
+                }
+            });
+
+            removedUser.forEach((user) => {
+                io.to(user._id).emit('deleteGroupChat', chat._id);
+            });
+
+            addedUser.forEach((user) => {
+                io.to(user._id).emit('joinGroupChat', chat);
+            });
+        });
+
         socket.on('typing', ({ chatId, user }) => {
             io.to(chatId).except(user._id).emit('startTyping', { chatId, user });
         });

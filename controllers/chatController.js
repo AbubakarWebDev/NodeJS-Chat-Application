@@ -322,7 +322,14 @@ const createGroupChat = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        });
+        })
+        .populate({
+            path: "latestMessage",
+            populate: {
+                path: "sender",
+                select: "username firstName lastName avatar",
+            }
+        })
 
     return res.status(200).json(success("Success", 200, { chat: fullGroupChat }));
 }
@@ -374,7 +381,14 @@ const renameGroupChat = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        });
+        })
+        .populate({
+            path: "latestMessage",
+            populate: {
+                path: "sender",
+                select: "username firstName lastName avatar",
+            }
+        })
 
     return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
@@ -453,7 +467,14 @@ const addtoGroup = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        });
+        })
+        .populate({
+            path: "latestMessage",
+            populate: {
+                path: "sender",
+                select: "username firstName lastName avatar",
+            }
+        })
 
     return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
@@ -535,7 +556,14 @@ const removeFromGroup = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        });
+        })
+        .populate({
+            path: "latestMessage",
+            populate: {
+                path: "sender",
+                select: "username firstName lastName avatar",
+            }
+        })
 
     return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
@@ -600,7 +628,14 @@ const updateGroupUsers = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        });
+        })
+        .populate({
+            path: "latestMessage",
+            populate: {
+                path: "sender",
+                select: "username firstName lastName avatar",
+            }
+        })
 
     return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
@@ -665,7 +700,14 @@ const updateAdminUsers = async (req, res) => {
         .populate({
             path: "groupAdmins",
             select: "-password",
-        });
+        })
+        .populate({
+            path: "latestMessage",
+            populate: {
+                path: "sender",
+                select: "username firstName lastName avatar",
+            }
+        })
 
     return res.status(200).json(success("Success", 200, { chat: updatedChat }));
 }
