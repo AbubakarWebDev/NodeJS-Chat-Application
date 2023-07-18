@@ -1,11 +1,9 @@
-const router = require('express').Router();
+const router = require("express").Router();
+const authenticateToken = require("../../middlewares/authenticateToken");
+const MessageController = require("../../controllers/messageController");
 
-const authenticateToken = require('../../middlewares/authenticateToken');
-
-const { getAllMessages, sendMessage, updateReadBy } = require("../../controllers/messageController");
-
-router.get('/', authenticateToken, getAllMessages);
-router.post('/', authenticateToken, sendMessage);
-router.put('/readBy', authenticateToken, updateReadBy);
+router.get("/", authenticateToken, MessageController.getAllMessages);
+router.post("/", authenticateToken, MessageController.sendMessage);
+router.put("/readBy", authenticateToken, MessageController.updateReadBy);
 
 module.exports = router;

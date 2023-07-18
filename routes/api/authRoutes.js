@@ -1,19 +1,14 @@
-const router = require('express').Router();
+const router = require("express").Router();
+const AuthController = require("../../controllers/authController");
 
-const { 
-    loginUser, 
-    registerUser, 
-    sendUserPasswordResetEmail,
-    resetPassword
-} = require('../../controllers/authController');
-
+const authController = new AuthController();
 
 // Protected Routes
-router.post('/reset-password', resetPassword);
-router.post('/forgot-password', sendUserPasswordResetEmail);
+router.post("/reset-password", authController.resetPassword);
+router.post("/forgot-password", authController.sendUserPasswordResetEmail);
 
 // Public Routes
-router.post('/login', loginUser);
-router.post('/register', registerUser);
+router.post("/login", authController.loginUser);
+router.post("/register", authController.registerUser);
 
 module.exports = router;

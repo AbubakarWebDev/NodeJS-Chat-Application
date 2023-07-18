@@ -1,27 +1,19 @@
-const router = require('express').Router();
+const router = require("express").Router();
+const authenticateToken = require("../../middlewares/authenticateToken");
+const ChatController = require("../../controllers/chatController");
 
-const authenticateToken = require('../../middlewares/authenticateToken');
+router.get("/", authenticateToken, ChatController.getAllChats);
+router.post("/", authenticateToken, ChatController.getOrCreateChat);
 
-const {
-    addtoGroup,
-    getAllChats,
-    getOrCreateChat,
-    createGroupChat,
-    renameGroupChat,
-    removeFromGroup,
-    updateAdminUsers,
-    updateGroupUsers
-} = require("../../controllers/chatController");
-
-router.get('/', authenticateToken, getAllChats);
-router.post('/', authenticateToken, getOrCreateChat);
-
-router.post('/group', authenticateToken, createGroupChat);
-router.put('/group/add-member', authenticateToken, addtoGroup);
-router.put('/group/rename', authenticateToken, renameGroupChat);
-router.put('/group/users', authenticateToken, updateGroupUsers);
-router.put('/group/admins', authenticateToken, updateAdminUsers);
-router.put('/group/remove-member', authenticateToken, removeFromGroup);
-
+router.post("/group", authenticateToken, ChatController.createGroupChat);
+router.put("/group/add-member", authenticateToken, ChatController.addtoGroup);
+router.put("/group/rename", authenticateToken, ChatController.renameGroupChat);
+router.put("/group/users", authenticateToken, ChatController.updateGroupUsers);
+router.put("/group/admins", authenticateToken, ChatController.updateAdminUsers);
+router.put(
+  "/group/remove-member",
+  authenticateToken,
+  ChatController.removeFromGroup
+);
 
 module.exports = router;
