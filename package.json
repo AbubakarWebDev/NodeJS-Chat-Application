@@ -1,15 +1,14 @@
 {
-  "name": "jwt-auth-express-mongo",
+  "name": "nodejs-chat-applications",
   "version": "1.0.0",
-  "description": "JWT Authentication with Express MongoDB and proper error handling",
+  "description": "NodeJS Chat Application using WebSockets",
   "main": "index.js",
   "engines": {
     "node": ">=18.13.0",
     "npm": ">=9.6.1"
   },
   "scripts": {
-    "dev": "nodemon index",
-    "debug": "set DEBUG=app:debug&& nodemon index",
+    "dev": "env-cmd nodemon index",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,6 +20,7 @@
     "debug": "^4.3.4",
     "dotenv": "^16.0.3",
     "ejs": "^3.1.8",
+    "env-cmd": "^10.1.0",
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
     "helmet": "^6.0.1",

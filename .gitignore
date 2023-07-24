@@ -129,6 +129,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-#upload folder
-uploads/***
-!uploads
+public/uploads/***
