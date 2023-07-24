@@ -130,4 +130,5 @@ dist
 .pnp.*
 
 #upload folder
-public/uploads
+uploads/***
+!uploads
