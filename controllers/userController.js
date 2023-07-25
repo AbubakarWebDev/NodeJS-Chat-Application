@@ -1,5 +1,7 @@
 const Joi = require("joi");
+const path = require("path");
 const bcrypt = require("bcrypt");
+const multer = require("multer");
 
 const AppError = require("../utils/AppError");
 const { success } = require("../utils/apiResponse");
@@ -129,19 +131,183 @@ class UserController {
   static async getAllUsers(req, res) {
     let filter = req.query.search
       ? {
-          $or: [
-            { username: { $regex: req.query.search, $options: "i" } },
-            { email: { $regex: req.query.search, $options: "i" } },
-          ],
-          _id: { $ne: req.user._id },
-        }
+        $or: [
+          { username: { $regex: req.query.search, $options: "i" } },
+          { email: { $regex: req.query.search, $options: "i" } },
+        ],
+        _id: { $ne: req.user._id },
+      }
       : {
-          _id: { $ne: req.user._id },
-        };
+        _id: { $ne: req.user._id },
+      };
 
     const users = await User.find(filter).select("-password -__v");
 
     return res.status(200).json(success("Success", 200, { users }));
+  }
+
+  /**
+   * @route   PUT /api/v1/users
+   * @desc    Update the user profile data
+   * @access  Protected
+   *
+   * @param   {Object} req - Express request object.
+   * @param   {Object} res - Express response object.
+   *
+   * @returns {void}
+   */
+
+  static async updateUserProfile(req, res) {
+    const schema = Joi.object({
+      username: Joi.string().alphanum().min(4).max(25).required(),
+      firstName: Joi.string().min(3).required().label("First Name"),
+      lastName: Joi.string().min(3).required().label("Last Name"),
+      email: Joi.string().email().required(),
+    });
+
+    // Validate request body with Joi schema
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+      // If input validation fails, throw AppError with 422 status code and validation errors
+      throw new AppError(error.details[0].message, 422);
+    }
+
+    // Check if user exists in database excluding the current email
+    let userEmail = await User.findOne({
+      $and: [
+        {
+          email: { $ne: req.user.email }
+        },
+        {
+          email: { $eq: value.email }
+        },
+      ]
+    });
+    if (userEmail) throw new AppError("Entered email is already exist on database.", 400);
+
+    // Check if user exists in database excluding the current username
+    let username = await User.findOne({
+      $and: [
+        {
+          username: { $ne: req.user.username }
+        },
+        {
+          username: { $eq: value.username }
+        },
+      ]
+    });
+    if (username) throw new AppError("Entered username is already exist on database.", 400);
+
+
+    // update new user details in database
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        username: value.username,
+        firstName: value.firstName,
+        lastName: value.lastName,
+        email: value.email
+      },
+      { new: true, select: "-password" }
+    );
+
+    return res.status(200).json(success("Success", 200, { user: updatedUser }));
+  }
+
+
+  /**
+ * @route   PUT /api/v1/users/avatar
+ * @desc    Update the user profile data
+ * @access  Protected
+ *
+ * @param   {Object} req - Express request object.
+ * @param   {Object} res - Express response object.
+ *
+ * @returns {void}
+ */
+
+  static async updateUserAvatar(req, res, next) {
+    const storage = multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, "public/uploads");
+      },
+
+      filename: function (req, file, cb) {
+        const fileName = file.originalname.split(".")[0];
+        const fileExtension = file.originalname.split(".")[1];
+
+        cb(null, `${fileName}-${Date.now()}.${fileExtension}`);
+      },
+    });
+
+    async function fileFilter(req, file, cb) {
+      if (!file) {
+        return cb(new AppError("Avatar Image is Required!", 400), false);
+      }
+
+      // Check if the file is an image with the allowed extensions
+      const fileExtension = path.extname(file.originalname).toLowerCase();
+      const allowedExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+
+      const isImage = file.mimetype.startsWith("image/");
+      const isAllowedExtension = allowedExtensions.includes(fileExtension);
+
+      if (!isImage || !isAllowedExtension) {
+        return cb(
+          new AppError(
+            "Invalid file type. Only image files (PNG, JPG, JPEG, GIF, and WebP) are allowed.",
+            400
+          ),
+          false
+        );
+      }
+
+      cb(null, true);
+    }
+
+    const limits = {
+      fileSize: 2 * 1000 * 1000, // 1 MB
+      files: 1,
+    };
+
+    const upload = multer({ storage, limits, fileFilter }).single("avatar");
+
+    upload(req, res, async (err) => {
+      try {
+        if (err instanceof multer.MulterError) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            throw new AppError(
+              `File ${err.field} upload exceeds the maximum file size limit!`,
+              400
+            );
+          }
+          else {
+            throw err;
+          }
+        }
+        else if (err instanceof AppError) {
+          throw err;
+        }
+
+        if (!req.file) {
+          throw new AppError("Avatar Image is Required!", 400);
+        }
+
+        const filePath = req.file.path.replaceAll("\\", "/");
+        const newFilePath = filePath.replace("public/", "");
+
+        const updatedUser = await User.findByIdAndUpdate(
+          req.user._id,
+          { avatar: newFilePath },
+          { new: true, select: "-password" }
+        );
+
+        return res.status(200).json(success("Success", 200, { user: updatedUser }));
+      }
+      catch (err) {
+        return next(err);
+      }
+    });
   }
 }
 

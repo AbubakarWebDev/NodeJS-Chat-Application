@@ -104,37 +104,6 @@ class ChatController {
     */
 
     static async getAllChats(req, res) {
-        // const chats = await Chat.find({
-        // $or: [
-        //     {
-        //         users: {
-        //             $elemMatch: { $eq: req.user._id.toString() }
-        //         },
-        //     },
-        //     {
-        //         groupAdmins: {
-        //             $elemMatch: { $eq: req.user._id.toString() }
-        //         }
-        //     }
-        // ]
-        // })
-        //     .populate({
-        //         path: "users",
-        //         select: "-password",
-        //     })
-        //     .populate({
-        //         path: "groupAdmins",
-        //         select: "-password",
-        //     })
-        //     .populate({
-        //         path: "latestMessage",
-        //         populate: {
-        //             path: "sender",
-        //             select: "username firstName lastName avatar",
-        //         }
-        //     })
-        //     .sort({ updatedAt: -1 });
-
         const chats = await Chat.aggregate([
             {
                 $match: {

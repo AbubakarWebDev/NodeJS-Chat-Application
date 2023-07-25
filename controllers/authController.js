@@ -125,7 +125,7 @@ class AuthController {
     }
 
     const limits = {
-      fileSize: 1 * 1000 * 1000, // 1 MB
+      fileSize: 2 * 1000 * 1000, // 1 MB
       files: 1,
     };
 
@@ -139,10 +139,12 @@ class AuthController {
               `File ${err.field} upload exceeds the maximum file size limit!`,
               400
             );
-          } else {
+          } 
+          else {
             throw err;
           }
-        } else if (err instanceof AppError) {
+        } 
+        else if (err instanceof AppError) {
           throw err;
         }
 
