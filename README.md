@@ -1,6 +1,6 @@
-# ReactJS RealTime Chat Application
+# NodeJS RealTime Chat Application
 
-This repository showcases a real-time chat application, resembling a WhatsApp clone, with features like one-to-one and group chat functionality. The application's architecture is built using Vite, React, TypeScript, Socket.IO, authentication, and more.
+This repository demonstrates a Real-Time Chat Application built with Express, Node.js, and Socket.IO. It includes features like user authentication with a forgot password option, one-on-one and group chat functionality, ensuring a secure and interactive messaging experience.
 
 ## Getting Started
 
